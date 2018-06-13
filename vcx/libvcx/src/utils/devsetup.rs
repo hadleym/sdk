@@ -32,7 +32,16 @@ pub mod tests {
     pub const C_AGENCY_DID: &'static str = "dTLdJqRZLwMuWSogcKfBT";
     pub const C_AGENCY_VERKEY: &'static str = "LsPQTDHi294TexkFmZK9Q9vW4YGtQRuLV8wuyZi94yH";
 
+    pub fn init_wallet(name: &str) -> Result<i32, u32> {
+        wallet::init_wallet(name)
+    }
+
+    pub fn cleanup_wallet(name: &str) -> Result<(), u32> {
+        wallet::close_wallet().and( wallet::delete_wallet(name))
+    }
+
     pub fn setup_ledger_env(wallet_name: &str) {
+        println!("inside setup_ledger_env");
         match pool::get_pool_handle() {
             Ok(x) => pool::close().unwrap(),
             Err(x) => (),
@@ -44,17 +53,18 @@ pub mod tests {
         settings::set_config_value(settings::CONFIG_ENABLE_TEST_MODE, "false");
         pool::open_sandbox_pool();
 
-        wallet::init_wallet(wallet_name).unwrap();
+        init_wallet(wallet_name).unwrap();
         ::utils::libindy::anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
+        println!("Master secret created");
         let (my_did, _) = ::utils::libindy::signus::SignusUtils::create_and_store_my_did(wallet::get_wallet_handle(), Some(TRUSTEE)).unwrap();
+        println!("did created and stored");
         let did = settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &my_did);
         ::utils::libindy::payments::tests::token_setup(None, None);
     }
 
     pub fn cleanup_dev_env(wallet_name: &str) {
         //settings::set_defaults();
-        wallet::close_wallet().unwrap();
-        wallet::delete_wallet(wallet_name).unwrap();
+        cleanup_wallet(wallet_name).unwrap();
         pool::close().unwrap();
         pool::delete(::utils::constants::POOL).unwrap();
     }

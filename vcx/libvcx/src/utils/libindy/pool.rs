@@ -138,7 +138,8 @@ pub fn create_pool_ledger_config(pool_name: &str, path: Option<&Path>) -> Result
 }
 
 pub fn open_pool_ledger(pool_name: &str, config: Option<&str>) -> Result<u32, u32> {
-
+    println!("Open_pool_ledger config: {:?}", config);
+    println!("Pool name: {}", pool_name);
     let pool_name = CString::new(pool_name).map_err(map_string_error)?;
     let pool_config = match config {
         Some(str) => Some(CString::new(str).map_err(map_string_error)?),
@@ -239,12 +240,12 @@ fn sandbox_pool_setup() {
 pub fn open_sandbox_pool() -> u32 {
     sandbox_pool_setup();
     let config = r#"{"refresh_on_open": true}"#;
-    open_pool_ledger(POOL, Some(config)).unwrap()
+//    open_pool_ledger(POOL, Some(config)).unwrap()
+    open_pool_ledger(POOL, None).unwrap()
 }
 
 #[cfg(test)]
 pub mod tests {
-    use super::*;
 
     #[cfg(feature = "pool_tests")]
     #[test]

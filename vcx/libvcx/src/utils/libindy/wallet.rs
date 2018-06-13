@@ -50,7 +50,12 @@ extern {
                             cb: Option<extern fn(xcommand_handle: i32, err: i32)>) -> i32;
 }
 
-pub fn get_wallet_handle() -> i32 { unsafe { WALLET_HANDLE } }
+pub fn get_wallet_handle() -> i32 {
+    unsafe {
+        println!("WALLET_HANDLE: {}", WALLET_HANDLE);
+        WALLET_HANDLE
+    }
+}
 
 pub fn create_wallet(wallet_name: &str, pool_name: &str) -> Result<(), u32> {
     let create_obj = Return_I32::new()?;
@@ -118,6 +123,7 @@ pub fn open_wallet(wallet_name: &str) -> Result<i32, u32> {
                     warn!("libindy open wallet returned: {}", err);
                     return Err(error::UNKNOWN_LIBINDY_ERROR.code_num);
                 }
+                println!("libindy open wallet returned handle of: {}", handle);
                 handle
             }
             Err(err) => return Err(error::UNKNOWN_LIBINDY_ERROR.code_num),

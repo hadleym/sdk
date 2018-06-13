@@ -388,6 +388,7 @@ pub fn libindy_prover_create_master_secret(master_secret_id: &str) -> Result<Str
     if settings::test_indy_mode_enabled() { return Ok(settings::DEFAULT_LINK_SECRET_ALIAS.to_string()); }
 
     let wallet_handle = get_wallet_handle();
+    println!("Wallet Handle: {}", wallet_handle);
     let rtn_obj = Return_I32_STR::new()?;
 
     let master_secret_id = CString::new(master_secret_id).map_err(map_string_error)?;

@@ -13,10 +13,11 @@ path = "src/lib.rs"
 crate-type = ["staticlib","rlib", "dylib"]
 
 [features]
-default = ["nullpay"]
+default = ["sovtoken"]
 pool_tests = []
 no_payments = []
 nullpay = []
+sovtoken = []
 
 # turn on release versioning
 ci = []
