@@ -31,9 +31,11 @@ do
     mkdir -p $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
     ln -f -v $OPENSSL_DIR/output/android/openssl-${openssl_arch}/lib/libssl.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
     ln -f -v $OPENSSL_DIR/output/android/openssl-${openssl_arch}/lib/libcrypto.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
+    ln -f -v $INDY_SDK/libnullpay/target/${cross_compile}/release/libnullpay.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
     ln -f -v $INDY_SDK/libindy/target/${cross_compile}/release/libindy.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
     ln -f -v $VCX_SDK/vcx/libvcx/target/${cross_compile}/release/libvcx.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
     ln -f -v $WORK_DIR/libzmq-android/libsodium/libsodium_${target_arch}/lib/libsodium.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
     ln -f -v $WORK_DIR/libzmq-android/zmq/libzmq_${target_arch}/lib/libzmq.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
     ln -f -v $WORK_DIR/libz-android/zlib/lib/${target_arch}/libz.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
+    ln -f -v $WORK_DIR/libsqlite3-android/sqlite3-android/obj/local/${openssl_arch}/libsqlite3.so $VCX_SDK/vcx/wrappers/java/android/vcxtest/app/jni/${target_arch}
 done

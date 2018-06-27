@@ -120,6 +120,8 @@ async def test_send_offer():
     issuer_credential = await IssuerCredential.create(source_id, attrs, cred_def_id, name, price)
     await issuer_credential.send_offer(connection)
     assert await issuer_credential.update_state() == State.OfferSent
+    txn = await issuer_credential.get_payment_txn()
+    assert(txn)
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,5 @@
 #[cfg(test)]
 pub mod tests {
-    extern crate rusqlite;
     extern crate rand;
 
     use utils::constants;
@@ -41,7 +40,6 @@ pub mod tests {
     }
 
     pub fn setup_ledger_env(wallet_name: &str) {
-        println!("inside setup_ledger_env");
         match pool::get_pool_handle() {
             Ok(x) => pool::close().unwrap(),
             Err(x) => (),
@@ -55,9 +53,7 @@ pub mod tests {
 
         init_wallet(wallet_name).unwrap();
         ::utils::libindy::anoncreds::libindy_prover_create_master_secret(settings::DEFAULT_LINK_SECRET_ALIAS).unwrap();
-        println!("Master secret created");
         let (my_did, _) = ::utils::libindy::signus::SignusUtils::create_and_store_my_did(wallet::get_wallet_handle(), Some(TRUSTEE)).unwrap();
-        println!("did created and stored");
         let did = settings::set_config_value(settings::CONFIG_INSTITUTION_DID, &my_did);
         ::utils::libindy::payments::tests::token_setup(None, None);
     }
@@ -125,10 +121,8 @@ pub mod tests {
         }
 
         pool::open_sandbox_pool();
-
         wallet::open_wallet(wallet_name).unwrap();
         set_institution();
-
         ::utils::libindy::payments::tests::token_setup(None, None);
 
     }

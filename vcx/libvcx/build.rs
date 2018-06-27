@@ -69,6 +69,11 @@ fn main() {
             Err(..) => panic!("Missing required environment variable LIBINDY_DIR")
         };
 
+        let libnullpay_lib_path = match env::var("LIBNULLPAY_DIR"){
+            Ok(val) => val,
+            Err(..) => panic!("Missing required environment variable LIBNULLPAY_DIR")
+        };
+
         let openssl = match env::var("OPENSSL_LIB_DIR") {
             Ok(val) => val,
             Err(..) => match env::var("OPENSSL_DIR") {
@@ -82,7 +87,9 @@ fn main() {
         println!("cargo:rustc-link-search=native={}", openssl);
         println!("cargo:rustc-link-lib=static=crypto");
         println!("cargo:rustc-link-lib=static=ssl");
-    } else if target.contains("darwin") {
+        println!("cargo:rustc-link-search=native={}",libnullpay_lib_path);
+        println!("cargo:rustc-link-lib=static=nullpay");
+    }else if target.contains("darwin"){
         //OSX specific logic
         println!("cargo:rustc-link-lib=indy");
         //OSX does not allow 3rd party libs to be installed in /usr/lib. Instead install it in /usr/local/lib
@@ -144,5 +151,4 @@ pub fn get_revision() -> Option<String> {
     };
     Some(format!("+{}", revision))
 }
-
 

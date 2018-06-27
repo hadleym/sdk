@@ -1,4 +1,5 @@
 extern crate libc;
+extern crate serde_json;
 
 use self::libc::c_char;
 use utils::cstring::CStringUtils;
@@ -260,6 +261,62 @@ pub extern fn vcx_schema_get_attributes(command_handle: u32,
     error::SUCCESS.code_num
 }
 
+/// Retrieve the txn associated with paying for the schema
+///
+/// #param
+/// handle: schema handle that was provided during creation.  Used to access schema object.
+///
+/// #Callback returns
+/// PaymentTxn json
+/// example: {
+///         "amount":25,
+///         "inputs":[
+///             "pay:null:1_3FvPC7dzFbQKzfG",
+///             "pay:null:1_lWVGKc07Pyc40m6"
+///         ],
+///         "outputs":[
+///             {"paymentAddress":"pay:null:FrSVC3IrirScyRh","amount":5,"extra":null},
+///             {"paymentAddress":"pov:null:OsdjtGKavZDBuG2xFw2QunVwwGs5IB3j","amount":25,"extra":null}
+///         ]
+///     }
+#[no_mangle]
+pub extern fn vcx_schema_get_payment_txn(command_handle: u32,
+                                             handle: u32,
+                                             cb: Option<extern fn(xcommand_handle: u32, err: u32, txn: *const c_char)>) -> u32 {
+
+    check_useful_c_callback!(cb, error::INVALID_OPTION.code_num);
+
+    info!("vcx_schema_get_payment_txn(command_handle: {})", command_handle);
+
+    thread::spawn(move|| {
+        match schema::get_payment_txn(handle) {
+            Some(x) => {
+                match serde_json::to_string(&x) {
+                    Ok(x) => {
+                        info!("vcx_schema_get_payment_txn_cb(command_handle: {}, rc: {}, : {}), source_id: {:?}",
+                              command_handle, error_string(0), x, schema::get_source_id(handle).unwrap_or_default());
+
+                        let msg = CStringUtils::string_to_cstring(x);
+                        cb(command_handle, 0, msg.as_ptr());
+                    }
+                    Err(_) => {
+                        error!("vcx_schema_get_payment_txn_cb(command_handle: {}, rc: {}, txn: {}), source_id: {:?}",
+                               command_handle, error_string(error::INVALID_JSON.code_num), "null", schema::get_source_id(handle).unwrap_or_default());
+                        cb(command_handle, error::INVALID_JSON.code_num, ptr::null_mut());
+                    }
+                }
+            },
+            None => {
+                error!("vcx_schema_get_payment_txn_cb(command_handle: {}, rc: {}, txn: {}), source_id: {:?}",
+                       command_handle, error_string(error::NOT_READY.code_num), "null", schema::get_source_id(handle).unwrap_or_default());
+                cb(command_handle, error::NOT_READY.code_num, ptr::null());
+            },
+        };
+    });
+
+    error::SUCCESS.code_num
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -301,7 +358,7 @@ mod tests {
             panic!("schema_data is null");
         }
         check_useful_c_str!(schema_data, ());
-        let data = r#"{"data":["height","name","sex","age"],"version":"4.4.4","schema_id":"2hoqvcwupRTUNkXn6ArYzs:2:test-licence:4.4.4","name":"test-licence","source_id":"Test Source ID","sequence_num":0}"#;
+        let data = r#"{"data":["height","name","sex","age"],"version":"4.4.4","schema_id":"2hoqvcwupRTUNkXn6ArYzs:2:test-licence:4.4.4","name":"test-licence","source_id":"Test Source ID","sequence_num":0,"payment_txn":null}"#;
         assert_eq!(schema_data, data);
         println!("successfully called get_attrs_cb: {}", schema_data);
     }
@@ -347,7 +404,7 @@ mod tests {
         assert_eq!(err, 0);
         assert!(schema_handle > 0);
         println!("successfully called deserialize_cb");
-        let expected = r#"{"data":["age","name","height","sex"],"version":"0.0.11","schema_id":"2hoqvcwupRTUNkXn6ArYzs:2:schema_name:0.0.11","name":"schema_name","source_id":"Test Source ID","sequence_num":0}"#;
+        let expected = r#"{"data":["age","name","height","sex"],"version":"0.0.11","schema_id":"2hoqvcwupRTUNkXn6ArYzs:2:schema_name:0.0.11","name":"schema_name","source_id":"Test Source ID","sequence_num":0,"payment_txn":null}"#;
         let new = schema::to_string(schema_handle).unwrap();
         assert_eq!(expected, new);
     }
@@ -456,6 +513,15 @@ mod tests {
                                              CString::new("Test Source ID").unwrap().into_raw(),
                                              CString::new(SCHEMA_ID).unwrap().into_raw(),
                                              Some(get_attrs_cb)), error::SUCCESS.code_num);
+        thread::sleep(Duration::from_millis(200));
+    }
+
+    #[test]
+    fn test_get_payment_txn() {
+        set_default_and_enable_test_mode();
+        let did = settings::get_config_value(settings::CONFIG_INSTITUTION_DID).unwrap();
+        let handle = schema::create_new_schema("testid", did, "name".to_string(),"1.0".to_string(),"[\"name\":\"male\"]".to_string()).unwrap();
+        let rc = vcx_schema_get_payment_txn(0, handle, Some(get_id_cb));
         thread::sleep(Duration::from_millis(200));
     }
 }

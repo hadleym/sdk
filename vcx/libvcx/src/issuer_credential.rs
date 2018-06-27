@@ -138,12 +138,12 @@ impl IssuerCredential {
 
         if settings::test_agency_mode_enabled() { httpclient::set_next_u8_response(SEND_MESSAGE_RESPONSE.to_vec()); }
 
-        let data = connection::generate_encrypted_payload(&self.issued_vk, &self.remote_vk, &payload, "CLAIM_OFFER")
+        let data = connection::generate_encrypted_payload(&self.issued_vk, &self.remote_vk, &payload, "CRED_OFFER")
             .map_err(|e| IssuerCredError::CommonError(e.to_error_code()))?;
 
         match messages::send_message().to(&self.issued_did)
             .to_vk(&self.issued_vk)
-            .msg_type("claimOffer")
+            .msg_type("credOffer")
             .edge_agent_payload(&data)
             .agent_did(&self.agent_did)
             .agent_vk(&self.agent_vk)
@@ -186,13 +186,13 @@ impl IssuerCredential {
 
         debug!("credential data: {}", data);
 
-        let data = connection::generate_encrypted_payload(&self.issued_vk, &self.remote_vk, &data, "CLAIM")
+        let data = connection::generate_encrypted_payload(&self.issued_vk, &self.remote_vk, &data, "CRED")
             .map_err(|e| IssuerCredError::CommonError(e.to_error_code()))?;
         if settings::test_agency_mode_enabled() { httpclient::set_next_u8_response(SEND_MESSAGE_RESPONSE.to_vec()); }
 
         match messages::send_message().to(&self.issued_did)
             .to_vk(&self.issued_vk)
-            .msg_type("claim")
+            .msg_type("cred")
             .status_code(&MessageAccepted.as_string())
             .edge_agent_payload(&data)
             .agent_did(&self.agent_did)
@@ -269,7 +269,7 @@ impl IssuerCredential {
             claim_offer_id: self.msg_uid.clone(),
             from_did: String::from(did),
             version: String::from("0.1"),
-            msg_type: String::from("CLAIM"),
+            msg_type: String::from("CRED"),
             libindy_cred: cred,
             //Todo: need to add indy api calls to populate this field
             rev_reg_def_json: String::new(),
@@ -283,7 +283,7 @@ impl IssuerCredential {
         let libindy_offer = libindy_issuer_create_credential_offer(&self.cred_def_id)
             .map_err(|err| IssuerCredError::CommonError(err))?;
         Ok(CredentialOffer {
-            msg_type: String::from("CLAIM_OFFER"),
+            msg_type: String::from("CRED_OFFER"),
             version: String::from("0.1"),
             to_did: to_did.to_string(),
             from_did: self.issued_did.clone(),
@@ -312,6 +312,8 @@ impl IssuerCredential {
     }
 
     fn verify_payment(&mut self) -> Result<(), u32> {
+        if self.credential_name == "FREE" { return Ok(()); }
+
         if self.price > 0 {
             let invoice_address = self.payment_address.as_ref()
                 .ok_or(error::INVALID_PAYMENT_ADDRESS.code_num)?;
@@ -321,6 +323,18 @@ impl IssuerCredential {
             if address.balance < self.price { return Err(error::INSUFFICIENT_TOKEN_AMOUNT.code_num); }
         }
         Ok(())
+    }
+
+    fn get_payment_txn(&self) -> Result<Option<payments::PaymentTxn>, u32> {
+        if self.price == 0 || self.payment_address.is_none() { return Ok(None); }
+
+        let payment_address = self.payment_address.clone().unwrap();
+
+        Ok(Some(payments::PaymentTxn {
+            amount: self.price,
+            inputs: vec![payment_address],
+            outputs: Vec::new(),
+        }))
     }
 }
 
@@ -383,6 +397,14 @@ pub fn get_offer_uid(handle: u32) -> Result<String,u32> {
     match ISSUER_CREDENTIAL_MAP.lock().unwrap().get(&handle) {
         Some(credential) => Ok(credential.get_offer_uid().clone()),
         None => Err(error::INVALID_ISSUER_CREDENTIAL_HANDLE.code_num),
+    }
+}
+
+pub fn get_payment_txn(handle: u32) -> Option<payments::PaymentTxn> {
+    // get_payment_txn only ever returns Ok()
+    match ISSUER_CREDENTIAL_MAP.lock().unwrap().get(&handle) {
+        Some(c) => c.get_payment_txn().unwrap(),
+        None => None,
     }
 }
 
@@ -655,7 +677,7 @@ pub mod tests {
             credential_request: Some(credential_req.to_owned()),
             credential_offer: Some(credential_offer.to_owned()),
             credential_id: String::from(DEFAULT_CREDENTIAL_ID),
-	        price: 0,
+	        price: 1,
             payment_address: Some("pay:null:9UFgyjuJxi1i1HD".to_string()),
             ref_msg_id: None,
             remote_did: DID.to_string(),
@@ -1043,5 +1065,7 @@ pub mod tests {
         credential.state = VcxStateType::VcxStateRequestReceived;
         credential.price = 200;
         assert!(credential.send_credential(connection_handle).is_err());
+        let payment = serde_json::to_string(&credential.get_payment_txn().unwrap().unwrap()).unwrap();
+        assert!(payment.len() > 20);
     }
 }
