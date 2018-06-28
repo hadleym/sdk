@@ -432,7 +432,16 @@ pub mod tests {
     }
 
     #[cfg(feature = "pool_tests")]
-    #[cfg(feature = "nullpay")]
+    #[cfg(feature = "sovtoken")]
+    #[test]
+    fn test_pool_config_works() {
+        let name = "test_pool_config_works";
+        tests::setup_ledger_env(name);
+
+    }
+
+    #[cfg(feature = "pool_tests")]
+    #[cfg(feature = "sovtoken")]
     #[test]
     fn test_get_wallet_token_info_real() {
         let name = "test_get_wallet_info_real";
